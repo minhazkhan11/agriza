@@ -1,0 +1,39 @@
+'use strict';
+const { ErrorHandler } = require('../../../../../lib/utils');
+const Activity = require('../../../../../models/order_activity');
+
+module.exports = async (req, res) => {
+    try {
+        const { id } = req.params; // or req.params if you're using route params
+
+        const order_activity = await Activity.query((qb) => {
+            qb.whereIn('active_status', ['active', 'inactive'])
+                .orderBy('created_at', 'asc');
+
+            if (id) {
+                qb.where('customer_be_id', id); // match with param
+            }
+        }).fetchAll({
+            require: false,
+            withRelated: [{
+                'activity_image': function (qb) {
+                    qb.where('active_status', 'active').select('id', 'photo_path', 'entity_id'); // customize as needed
+                }
+            },
+            {
+                'be_information_customer': function (qb) {
+                    qb.select('id', 'business_name'); // customize as needed
+                }
+            }]
+        });
+
+        const count = order_activity.length;
+
+        return res.success({
+            order_activity, count
+        });
+
+    } catch (error) {
+        return res.serverError(500, ErrorHandler(error));
+    }
+};

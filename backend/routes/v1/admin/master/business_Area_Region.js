@@ -1,0 +1,22 @@
+const express = require('express');
+const router = express.Router();
+const joiMiddleware = require('../../../../middlewares/joi.middleware');
+const joiSchemas = require('../../../../lib/utils/joi.schemas');
+const adminMiddleware = require('../../../../middlewares/admin.middleware');
+
+const addComponent = require('../../../../components/v1/admin/master/business_area_region/add');
+const deleteComponent = require('../../../../components/v1/admin/master/business_area_region/delete');
+const fetchAllComponent = require('../../../../components/v1/admin/master/business_area_region/fetch');
+const fetchoneComponent = require('../../../../components/v1/admin/master/business_area_region/fetch.one');
+const updateComponent = require('../../../../components/v1/admin/master/business_area_region/update');
+const statusChangeComponent = require('../../../../components/v1/admin/master/business_area_region/change.status');
+
+router.post('/add', adminMiddleware.checkAccess(),  addComponent);
+router.delete('/:id', adminMiddleware.checkAccess(), deleteComponent);
+router.get('/', adminMiddleware.checkAccess(), fetchAllComponent);
+router.get('/:id', adminMiddleware.checkAccess(), fetchoneComponent);
+router.put('/update', adminMiddleware.checkAccess(), updateComponent);
+router.put('/status', adminMiddleware.checkAccess(), joiMiddleware.joiBodyMiddleware(joiSchemas.changeStatus, 'business_area_region'), statusChangeComponent);
+
+
+module.exports = router;

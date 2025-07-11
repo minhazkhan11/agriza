@@ -1,0 +1,76 @@
+const DemoMenuData = {
+  success: true,
+  menu: [
+    {
+      id: 94,
+      name: "Dashboard",
+      type: "link",
+      icon: "Dashboard",
+      path: "/dashboard",
+      validity: true,
+      page_status: true,
+    },
+    {
+      id: 95,
+      name: "Master",
+      type: "dropdown",
+      icon: "Master",
+      validity: true,
+      page_status: true,
+      menu: [
+        {
+          id: 116,
+          name: "Place",
+          type: "link",
+          path: "/place-list",
+          validity: true,
+          page_status: true,
+        },
+      ],
+    },
+    {
+      id: 95,
+      name: "Product",
+      type: "dropdown",
+      icon: "Master",
+      validity: true,
+      page_status: true,
+      menu: [
+        {
+          id: 120,
+          name: "Product Catalogue",
+          type: "link",
+          path: "/product-catalogue",
+          validity: true,
+          page_status: true,
+        },
+        {
+          id: 121,
+          name: "Request New Product",
+          type: "link",
+          path: "/product-list",
+          validity: true,
+          page_status: true,
+        },
+        {
+          id: 122,
+          name: "Product Bucket",
+          type: "link",
+          path: "/product-bucket-list",
+          validity: true,
+          page_status: true,
+        },
+        {
+          id: 123,
+          name: "Product Update Price",
+          type: "link",
+          path: "/product-update-price",
+          validity: true,
+          page_status: true,
+        },
+      ],
+    },
+  ],
+  plan_name: "Perimum LMS 12 Month with 100 Studens",
+};
+export default DemoMenuData;

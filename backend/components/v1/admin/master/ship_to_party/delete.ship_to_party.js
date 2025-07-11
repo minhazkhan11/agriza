@@ -1,0 +1,23 @@
+
+'use strict';
+const { ErrorHandler } = require('../../../../../lib/utils');
+const Deliverypoint = require('../../../../../models/deliverypoint');
+const { constants } = require('../../../../../config');
+module.exports = async (req, res, next) => {
+    try {
+        //Get logged in user
+        let check = await Deliverypoint.where({ id: req.params.id }).fetch({ require: false });
+        if (!check)
+            return res.serverError(400, ErrorHandler(new Error('delivery point details not found')));
+        await new Deliverypoint().where({ id: req.params.id }).save({ active_status: constants.activeStatus.deleted }, { method: 'update' })
+            .then(() => {
+                return res.success({ 'message': ' ship to party  point details deleted successfully' });
+            })
+            .catch(err => {
+                return res.serverError(400, ErrorHandler('Something went wrong'));
+            })
+    } catch (error) {
+        console.log('errorrr', error);
+        return res.serverError(500, ErrorHandler(error));
+    }
+};

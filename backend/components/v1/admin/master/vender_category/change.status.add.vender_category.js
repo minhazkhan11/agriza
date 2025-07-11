@@ -1,0 +1,21 @@
+'use strict';
+const { ErrorHandler } = require('../../../../../lib/utils');
+const Category = require('../../../../../models/Vender_category');
+const { constants } = require('../../../../../config');
+
+module.exports = async (req, res, next) => {
+  try {
+
+    const id = req.body.vender_category.id;
+    let Check = await Category.where({ id }).fetch({ require: false });
+    if (!Check)
+      return res.serverError(400, ErrorHandler('vender_category not found'));
+
+    const body = req.body.vender_category;
+    const vender_category = await new Category().where({ id }).save(body, { method: 'update' });
+
+    return res.success({ vender_category });
+  } catch (error) {
+    return res.serverError(500, ErrorHandler(error));
+  }
+};

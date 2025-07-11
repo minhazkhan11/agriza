@@ -1,0 +1,5 @@
+name,phone,email,remark,status
+John Doe,123-456-7890,johndoe@example.com,Regular customer,Active
+Jane Smith,987-654-3210,janesmith@example.com,New client,Inactive
+Bob Johnson,555-555-5555,bobjohnson@example.com,Interested,Active
+Alice Lee,777-777-7777,alicelee@example.com,,Active

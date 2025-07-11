@@ -1,0 +1,27 @@
+doctype html
+html
+  head
+    meta(charset='utf-8')
+    title MarketPlace - Reset Your Password
+    style(type='text/css').
+      .boldLabel {
+      display:inline-block;
+      width:250px;
+      font-weight:bold;
+      }
+      .caps {
+        text-transform: capitalize;
+      }
+      .value {
+      display:inline-block;
+      margin-left: 80px;
+      }
+  body
+    p Hello #{user.email},
+    br
+    p Someone has requested for verification code.
+    br
+    p Here is the code to verify your email  #{verification_token}
+    p If you didn't request this, please ignore this email.,
+    br
+    p Your verification will not be done untill you use the above code.

@@ -1,0 +1,275 @@
+import React, { useState } from "react";
+import {
+  Backdrop,
+  Button,
+  FormControl,
+  FormControlLabel,
+  FormLabel,
+  Modal,
+  Radio,
+  RadioGroup,
+  TextField,
+  Typography,
+} from "@material-ui/core";
+import useStyles from "../../../../../styles";
+
+import axios from "axios";
+import { decryptData } from "../../../../../crypto";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { ToastContainer } from "react-toastify";
+import { useNavigate } from "react-router-dom";
+import AlreadyPopUp from "./AlreadyPopUp";
+
+const initialData = {
+  is_Business: "",
+};
+
+function AddBusinessEntityForm() {
+  const decryptedToken = decryptData(sessionStorage.getItem("token"));
+  const navigate = useNavigate();
+
+  const [name, setName] = useState("");
+
+  const [open, setOpen] = useState();
+
+  const handlePopUp = () => {
+    setOpen(!open);
+  };
+
+  const classes = useStyles();
+
+  const data = {
+    be_information: {
+      pan_number: name,
+    },
+  };
+
+  const handleCheck = () => {
+    const panRegex = /^[a-zA-Z]{5}[0-9]{4}[a-zA-Z]{1}$/;
+    if (!name.trim()) {
+      toast.warn("Please enter a PAN Number.");
+      return;
+    }
+
+    if (!panRegex.test(name)) {
+      toast.warn("PAN Number must be in a valid format (e.g., ABCDE1234F).");
+      return;
+    }
+
+    const data = {
+      be_information: {
+        pan_number: name,
+      },
+    };
+
+    axios
+      .post(
+        `${process.env.REACT_APP_API_BASE_URL}/v1/admin/business_entity_basic/gstpan`,
+        data,
+        {
+          headers: {
+            Authorization: `Bearer ${decryptedToken}`,
+          },
+        }
+      )
+      .then((response) => {
+        response.data.message === "Business Entity Already Registered"
+          ? handlePopUp()
+          : navigate("/create-business-entity-more", { state: data });
+      })
+      .catch((error) => {
+        toast.error(error);
+      });
+  };
+  return (
+    <>
+      <ToastContainer />
+      <div
+        className={`${classes.mt1} ${classes.mt1} ${classes.inputpadding} ${classes.inputborder} ${classes.pagescroll} ${classes.bgwhite} ${classes.h76}`}
+      >
+        <FormControl className={`${classes.w100}`}>
+          <div
+            className={`${classes.bgwhite} ${classes.boxshadow3} ${classes.borderradius6px} ${classes.py2} ${classes.px1_5} ${classes.mt1}`}
+          >
+            <div
+              className={`${classes.dflex} ${classes.justifyspacebetween} ${classes.mt1}`}
+            >
+              <Typography
+                className={`${classes.w24} ${classes.textcolorformhead} ${classes.fontfamilyoutfit} ${classes.fontsize} ${classes.fontstylenormal} ${classes.fw500} ${classes.lineheight2_25}`}
+                variant="h6"
+                display="inline"
+              >
+                Basic Information
+              </Typography>
+
+              {/* <div
+                className={`${classes.dflex} ${classes.flexdirectioncolumn}  ${classes.w30}`}
+              >
+                <FormLabel
+                  className={`${classes.textcolorformlabel} ${classes.fontfamilyoutfit}  ${classes.fontsize1} ${classes.fontstylenormal} ${classes.fw400} ${classes.lineheight}`}
+                >
+                  Is Business GST Registered
+                  <span className={classes.textcolorred}>*</span>
+                </FormLabel>
+                <RadioGroup
+                  className={`${classes.radiocolor}`}
+                  row
+                  aria-label="is Business"
+                  name="is Business"
+                  value={isBusiness}
+                  onChange={(e) =>
+                    handleFormChange("is_Business", e.target.value)
+                  }
+                >
+                  <FormControlLabel
+                    value="registered"
+                    control={
+                      <Radio onClick={() => setIsBusiness("registered")} />
+                    }
+                    label="Yes"
+                  />
+                  <FormControlLabel
+                    value="notregistered"
+                    control={
+                      <Radio onClick={() => setIsBusiness("notregistered")} />
+                    }
+                    label="No"
+                  />
+                </RadioGroup>
+              </div> */}
+              <div
+                className={`${classes.dflex} ${classes.flexdirectioncolumn}  ${classes.w30}`}
+              >
+                <FormLabel
+                  className={`${classes.textcolorformlabel} ${classes.fontfamilyoutfit}  ${classes.fontsize1} ${classes.fontstylenormal} ${classes.fw400} ${classes.lineheight}`}
+                >
+                  PAN Number <span className={classes.textcolorred}>*</span>
+                </FormLabel>
+                <div className={`${classes.dflex} `}>
+                  <TextField
+                    onChange={(e) => setName(e.target.value.toUpperCase())}
+                    value={name}
+                    type="text"
+                    inputProps={{
+                      maxLength: 10,
+                    }}
+                    variant="outlined"
+                    required
+                    placeholder="Enter Name"
+                  />
+                  <Button
+                    onClick={handleCheck}
+                    className={`${classes.ml1} ${classes.custombtnoutline}`}
+                  >
+                    Get
+                  </Button>
+                </div>
+              </div>
+
+              <div
+                className={`${classes.dflex} ${classes.flexdirectioncolumn}  ${classes.w24}`}
+              ></div>
+              <div
+                className={`${classes.dflex} ${classes.flexdirectioncolumn}  ${classes.w24}`}
+              ></div>
+            </div>
+
+            <div
+              className={`${classes.dflex} ${classes.justifyspacebetween} ${classes.mt1}`}
+            >
+              <Typography
+                className={`${classes.w24} ${classes.textcolorformhead} ${classes.fontfamilyoutfit} ${classes.fontsize} ${classes.fontstylenormal} ${classes.fw500} ${classes.lineheight2_25}`}
+                variant="h6"
+                display="inline"
+              ></Typography>
+
+              {/* {isBusiness === "registered" ? (
+                <div
+                  className={`${classes.dflex} ${classes.flexdirectioncolumn}  ${classes.w30}`}
+                >
+                  <FormLabel
+                    className={`${classes.textcolorformlabel} ${classes.fontfamilyoutfit}  ${classes.fontsize1} ${classes.fontstylenormal} ${classes.fw400} ${classes.lineheight}`}
+                  >
+                    GST Number <span className={classes.textcolorred}>*</span>
+                  </FormLabel>
+                  <div className={`${classes.dflex} `}>
+                    <TextField
+                      onChange={(e) => setName(e.target.value)}
+                      value={name}
+                      type="text"
+                      inputProps={{
+                        maxLength: 15,
+                      }}
+                      variant="outlined"
+                      required
+                      placeholder="Enter GST Number"
+                    />
+                    <Button
+                      onClick={handleCheck}
+                      className={`${classes.ml1} ${classes.custombtnoutline}`}
+                    >
+                      Get
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className={`${classes.dflex} ${classes.flexdirectioncolumn}  ${classes.w30}`}
+                >
+                  <FormLabel
+                    className={`${classes.textcolorformlabel} ${classes.fontfamilyoutfit}  ${classes.fontsize1} ${classes.fontstylenormal} ${classes.fw400} ${classes.lineheight}`}
+                  >
+                    PAN Number <span className={classes.textcolorred}>*</span>
+                  </FormLabel>
+                  <div className={`${classes.dflex} `}>
+                    <TextField
+                      onChange={(e) => setName(e.target.value)}
+                      value={name}
+                      type="text"
+                      inputProps={{
+                        maxLength: 10,
+                      }}
+                      variant="outlined"
+                      required
+                      placeholder="Enter Name"
+                    />
+                    <Button
+                      onClick={handleCheck}
+                      className={`${classes.ml1} ${classes.custombtnoutline}`}
+                    >
+                      Get
+                    </Button>
+                  </div>
+                </div>
+              )} */}
+
+              <div
+                className={`${classes.dflex} ${classes.flexdirectioncolumn}  ${classes.w24}`}
+              ></div>
+              <div
+                className={`${classes.dflex} ${classes.flexdirectioncolumn}  ${classes.w24}`}
+              ></div>
+            </div>
+          </div>
+        </FormControl>
+
+        <Modal
+          aria-labelledby="transition-modal-title"
+          aria-describedby="transition-modal-description"
+          className={`${classes.modal}`}
+          open={open}
+          onClose={handlePopUp}
+          closeAfterTransition
+          BackdropComponent={Backdrop}
+          BackdropProps={{
+            timeout: 500,
+          }}
+        >
+          <AlreadyPopUp handlePopUp={handlePopUp} data={data} open={open} />
+        </Modal>
+      </div>
+    </>
+  );
+}
+export default AddBusinessEntityForm;

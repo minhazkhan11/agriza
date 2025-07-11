@@ -1,0 +1,320 @@
+import React, { useState, useEffect } from "react";
+import {
+  Button,
+  FormControl,
+  IconButton,
+  Paper,
+  Popover,
+  Tooltip,
+  Typography,
+  withStyles,
+} from "@material-ui/core";
+import useStyles from "../../../../../styles";
+import "react-toastify/dist/ReactToastify.css";
+import { ToastContainer } from "react-toastify";
+import TableView from "../../../../CustomComponent/TableView";
+import ArrowLeftIcon from "@material-ui/icons/KeyboardArrowLeft";
+import { ReactComponent as ActiveIcon } from "../../../../images/commonicon/activeicon.svg";
+import { ReactComponent as InactiveIcon } from "../../../../images/commonicon/inactiveicon.svg";
+import VisibilityIcon from "@material-ui/icons/Visibility";
+import VisibilityOffOutlinedIcon from "@material-ui/icons/VisibilityOffOutlined";
+import EditOutlinedIcon from "@material-ui/icons/EditOutlined";
+import DeleteIcon from "@material-ui/icons/Delete";
+import { decryptData } from "../../../../../crypto";
+import axios from "axios";
+import { toast } from "react-toastify";
+
+function ViewWhatsappTemplate({ handleChange }) {
+  const style = [
+    {
+      style: "viewtable",
+      height: "h54vh",
+    },
+  ];
+  const [anchorEl, setAnchorEl] = useState(null);
+  const popoveropen = Boolean(anchorEl);
+  const id = popoveropen ? "simple-popover" : undefined;
+  const [selectedRowId, setSelectedRowId] = useState();
+  const [fetchedTemplates, setFetchedTemplates] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const decryptedToken = decryptData(sessionStorage.getItem("token"));
+  const classes = useStyles();
+  const handleClick = (event, rowId) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedRowId(rowId);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+  
+  const fetchData = async () => {
+    try {
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_BASE_URL}/v1/b2b/templatewhatsapp`,
+        {
+          headers: {
+            Authorization: `Bearer ${decryptedToken}`,
+          },
+        }
+      );
+      setFetchedTemplates(response.data.template);
+    } catch (error) {
+      console.error("Error fetching data: ", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const rows = fetchedTemplates.map((data, index) => ({
+    id: data.id ? data.id : "N/A",
+    srno: index + 1,
+    templatename: data.name ? data.name : "N/A",
+    template: data.message ? data.message : "N/A",
+    active_status: data.active_status ? data.active_status : "N/A",
+  }));
+
+  const filteredRows = rows
+    .filter((d) => {
+      const isSearchMatch =
+        d?.templatename?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+        false ||
+        d?.template?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+        false ||
+        d?.active_status?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+        false;
+
+      return isSearchMatch;
+    })
+    .map((row, index) => ({
+      ...row,
+      srno: index + 1,
+    }));
+
+  // Function to delete a book
+  const deleteDataOfRow = async (rowId) => {
+    try {
+      const decryptedToken = decryptData(sessionStorage.getItem("token"));
+      const response = await axios.delete(
+        `${process.env.REACT_APP_API_BASE_URL}/v1/b2b/templatewhatsapp/${rowId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${decryptedToken}`,
+          },
+        }
+      );
+
+      console.log("Whatsapp template deleted:", response.data);
+      fetchData();
+      handleClose();
+      toast.success("Whatsapp template deleted successfully");
+    } catch (error) {
+      toast.error("Whatsapp template is not deleted");
+      console.error("Error deleting data: ", error);
+    }
+  };
+
+  const handleStatus = (iddd, currentStatus) => {
+    const newStatus = currentStatus === "active" ? "inactive" : "active";
+
+    const data = {
+      template: {
+        active_status: newStatus,
+        id: iddd,
+      },
+    };
+
+    axios
+      .put(
+        `${process.env.REACT_APP_API_BASE_URL}/v1/b2b/templatewhatsapp/status`,
+        data,
+        {
+          headers: {
+            Authorization: `Bearer ${decryptedToken}`,
+          },
+        }
+      )
+      .then((response) => {
+        console.log("Whatsapp template status changed successfully", response);
+        fetchData();
+        toast.success("Whatsapp template status changed successfully");
+        handleClose();
+      })
+      .catch((error) => {
+        console.error("Error changed Whatsapp template status:", error);
+        toast.error("Whatsapp template status is not changed");
+      });
+  };
+
+  const LightTooltip = withStyles((theme) => ({
+    tooltip: {
+      backgroundColor: theme.palette.common.white,
+      color: "rgba(0, 0, 0, 0.87)",
+      boxShadow: theme.shadows[1],
+      fontSize: 11,
+    },
+  }))(Tooltip);
+
+  const columns = [
+    {
+      field: "srno",
+      headerName: "#",
+      headerClassName: "super-app-theme--header",
+      headerAlign: "center",
+      width: 70,
+      // flex: 1,
+      sortable: true,
+      disableColumnMenu: true,
+      autoPageSize: false,
+    },
+    {
+      field: "templatename",
+      headerName: "Template Name",
+      headerClassName: "super-app-theme--header",
+      headerAlign: "center",
+      width: 70,
+      flex: 1,
+      sortable: true,
+      disableColumnMenu: true,
+      autoPageSize: false,
+    },
+    {
+      field: "template",
+      headerName: "Template",
+      headerClassName: "super-app-theme--header",
+      cellClassName: 'quill-cell',
+      headerAlign: "center",
+      width: 200,
+      flex: 1,
+      sortable: true,
+      disableColumnMenu: true,
+      autoPageSize: false,
+      renderCell: (cellValues) => {
+        let content = cellValues.value;
+        if (content.includes("<img")) {
+          content = content.replace(/<img/g, `<img style="max-width: 35%"`);
+        }
+
+        return <div dangerouslySetInnerHTML={{ __html: content }} />;
+      },
+    },
+    {
+      field: "status",
+      headerName: "Status",
+      headerClassName: "super-app-theme--header",
+      headerAlign: "center",
+      sortable: true,
+      disableColumnMenu: true,
+      width: 150,
+      autoPageSize: false,
+      renderCell: (cellValues) => {
+        return (
+          <div
+            className={`${classes.dflex} ${classes.alignitemscenter} ${classes.justifycenter} ${classes.mr1}`}
+          >
+            <IconButton
+              className={`${classes.w15}`}
+              aria-describedby={id}
+              onClick={(event) => {
+                handleClick(event, cellValues.row.id);
+              }}
+            >
+              <ArrowLeftIcon fontSize="small" />
+            </IconButton>
+            <Typography
+              className={`${classes.dflex} ${classes.alignitemscenter} ${classes.texttransformcapitalize} ${classes.fontsize6}`}
+              variant="h6"
+            >
+              {cellValues.row.active_status === "active" ? (
+                <ActiveIcon className={`${classes.mr0_5}`} />
+              ) : (
+                <InactiveIcon fontSize="small" className={`${classes.mr0_5}`} />
+              )}
+              {cellValues.row.active_status}
+            </Typography>
+            <Popover
+              id={id}
+              open={popoveropen && selectedRowId === cellValues.row.id}
+              anchorEl={anchorEl}
+              onClose={handleClose}
+              anchorOrigin={{
+                vertical: "center",
+                horizontal: "left",
+              }}
+              transformOrigin={{
+                vertical: "center",
+                horizontal: "right",
+              }}
+            >
+              <Paper>
+                <IconButton
+                  onClick={(event) => {
+                    handleStatus(
+                      cellValues.row.id,
+                      cellValues.row.active_status
+                    );
+                  }}
+                >
+                  <LightTooltip
+                    title={
+                      cellValues.row.active_status === "active"
+                        ? "Inactive"
+                        : "Active"
+                    }
+                  >
+                    {cellValues.row.active_status === "active" ? (
+                      <VisibilityOffOutlinedIcon />
+                    ) : (
+                      <VisibilityIcon />
+                    )}
+                  </LightTooltip>
+                </IconButton>
+                <IconButton
+                  onClick={(e) => handleChange(e, 8, cellValues.row.id)}
+                >
+                  <LightTooltip title="Edit">
+                    <EditOutlinedIcon />
+                  </LightTooltip>
+                </IconButton>
+                <IconButton onClick={() => deleteDataOfRow(cellValues.row.id)}>
+                  <LightTooltip title="Delete">
+                    <DeleteIcon />
+                  </LightTooltip>
+                </IconButton>
+              </Paper>
+            </Popover>
+          </div>
+        );
+      },
+    },
+  ];
+
+  return (
+    <>
+      <ToastContainer />
+      <FormControl className={`${classes.w100}`}>
+        <div className={`${classes.py2} ${classes.px1_5} `}>
+          <div className={`${classes.dflex} ${classes.justifyspacebetween}`}>
+            <Typography className={`${classes.fw600}`}>
+              Whatsapp Template
+            </Typography>
+            <Button
+              className={`${classes.fw600} ${classes.bluebtn}`}
+              onClick={(e) => handleChange(e, 5)}
+            >
+              Create Whatsapp Template
+            </Button>
+          </div>
+          <div
+            className={`${classes.dflex} ${classes.flexdirectioncolumn} ${classes.w100} ${classes.mt1}`}
+          >
+            <TableView columns={columns} rows={filteredRows} Heading={style} />
+          </div>
+        </div>
+      </FormControl>
+    </>
+  );
+}
+export default ViewWhatsappTemplate;
