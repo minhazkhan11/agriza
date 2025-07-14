@@ -55,7 +55,7 @@ app.use(cookieParser());
 
 
 // Endpoints Admin Base Route
-app.use('/v1/admin/auth/hgffggf', appRouter.authRouter);
+app.use('/v1/admin/auth', appRouter.authRouter);
 app.use('/v1/user', appRouter.userRouter);
 app.use('/v1/admin/category', passportMiddleWare.jwtAuth, appRouter.categoryRouter);
 app.use('/v1/admin/country', passportMiddleWare.jwtAuth, appRouter.countryRouter);
