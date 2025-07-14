@@ -254,7 +254,7 @@ function LoginPage({ onLogin }) {
               your account
             </Typography>
             <Typography className={classes.Subheading}>
-              Let us make the circle bigger!
+              Let us make the circle bigger!!!
             </Typography>
             <div className={classes.dividercont}>
               <Divider className={classes.dividerorange} />
