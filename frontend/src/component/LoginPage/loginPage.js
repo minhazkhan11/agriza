@@ -247,7 +247,7 @@ function LoginPage({ onLogin }) {
         <div className={classes.formcard}>
           <div className={classes.formcardinner}>
             <Typography variant="h4" className={classes.heading}>
-              <span className={classes.colororange}>Login </span>
+              <span className={classes.colororange}>sign up </span>
               into
             </Typography>
             <Typography variant="h4" className={classes.heading}>
