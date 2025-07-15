@@ -179,6 +179,9 @@ app.use('/v1/admin/vendor_warehouse_details', passportMiddleWare.jwtAuth, appRou
 app.use('/v1/admin/assigned_item_variant_to_vendor', passportMiddleWare.jwtAuth, appRouter.AssignedItemVendorRouter);
 app.use('/v1/admin/persons', passportMiddleWare.jwtAuth, appRouter.personsRouter);
 
+app.get('/', (req, res) => {
+  res.send('Backend is running!');
+});
 
 // Basic health check route for ECS/ALB
 app.get('/health', (req, res) => {
