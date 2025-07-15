@@ -180,6 +180,10 @@ app.use('/v1/admin/assigned_item_variant_to_vendor', passportMiddleWare.jwtAuth,
 app.use('/v1/admin/persons', passportMiddleWare.jwtAuth, appRouter.personsRouter);
 
 
+// Basic health check route for ECS/ALB
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
 
 app.use(function (req, res, next) {
     next(createError(404));
