@@ -184,8 +184,8 @@ app.get('/', (req, res) => {
 });
 
 // Basic health check route for ECS/ALB
-app.get('/health', (req, res) => {
-    res.status(200).send('OK');
+app.get('/api/health', (req, res) => {
+  res.status(200).send('OK');
 });
 
 app.use(function (req, res, next) {
