@@ -28,7 +28,7 @@ const app = express();
 
 // ✅ Health routes at top
 app.get('/', (req, res) => res.send('Backend is running!'));
-app.get('/health', (req, res) => res.status(200).send('OK'));
+app.get('/api/health', (req, res) => res.status(200).send('OK'));
 
 // ✅ Middlewares
 app.use(cors());
