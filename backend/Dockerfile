@@ -16,8 +16,5 @@ COPY . .
 # Expose the backend port
 EXPOSE 3005
 
-# Optional healthcheck (ECS can detect broken container)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3005/health || exit 1
 
 CMD ["npm", "run", "start"]
