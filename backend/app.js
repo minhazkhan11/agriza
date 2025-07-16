@@ -15,6 +15,8 @@ const passportMiddleWare = require('./middlewares/passport.middleware');
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
+const PORT = process.env.PORT || 3005;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 // ✅ Start logs for debugging
 console.log("🔥 Starting backend server...");
