@@ -173,9 +173,9 @@ app.use('/v1/admin/assigned_item_variant_to_vendor', passportMiddleWare.jwtAuth,
 app.use('/v1/admin/persons', passportMiddleWare.jwtAuth, appRouter.personsRouter);
 
 // 404 Not Found
-app.use((req, res, next) => {
-  next(createError(404));
-});
+// app.use((req, res, next) => {
+//   next(createError(404));
+// });
 
 // Global Error Handler
 app.use((err, req, res, next) => {
