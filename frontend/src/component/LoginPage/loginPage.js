@@ -207,7 +207,7 @@ function LoginPage({ onLogin }) {
               response?.data?.entity_details?.business_name
             );
        
-
+            localStorage.setItem("token", encryptedToken); ✅
             sessionStorage.setItem("token", encryptedToken);
             sessionStorage.setItem("userName", encryptedUser);
             sessionStorage.setItem("businessName", encryptedBusinessName);
