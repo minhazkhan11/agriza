@@ -1,0 +1,17 @@
+name: Deploy to Testing
+
+on:
+  push:
+    branches:
+      - testing
+
+jobs:
+  deploy-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Simulate Testing Deployment
+        run: echo "🚀 Code pushed to testing branch. Deploying to Testing Environment..."
