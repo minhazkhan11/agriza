@@ -1,0 +1,38 @@
+name: Deploy to Development
+
+on:
+  push:
+    branches:
+      - development
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Project (Optional)
+        run: npm run build
+
+      - name: Deploy to Development Server
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          DEV_SERVER: ${{ secrets.DEV_SERVER }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > key.pem
+          chmod 600 key.pem
+          ssh -i key.pem -o StrictHostKeyChecking=no ubuntu@$DEV_SERVER << 'EOF'
+            cd /home/ubuntu/dev-backend
+            git pull origin development
+            pm2 restart all || pm2 start app.js
+          EOF
