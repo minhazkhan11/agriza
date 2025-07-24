@@ -29,10 +29,6 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           DEV_SERVER: ${{ secrets.DEV_SERVER }}
               - name: Deploy to Development Server
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          DEV_SERVER: ${{ secrets.DEV_SERVER }}
-        run: |
           echo "$SSH_PRIVATE_KEY" > key.pem
           chmod 600 key.pem
           echo "🔐 SSH Key saved, trying to connect to $DEV_SERVER"
