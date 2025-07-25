@@ -22,7 +22,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # ADD THIS STEP - Docker Hub Login
+      # CORRECT: Use environment variable for username, secret for token
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -63,16 +63,13 @@ jobs:
         run: |
           echo "🚀 DEPLOYING TO DEVELOPMENT ENVIRONMENT"
           
-          # Clean up existing containers (prevents overlap)
           docker stop agriza-backend-dev agriza-frontend-dev 2>/dev/null || true
           docker rm agriza-backend-dev agriza-frontend-dev 2>/dev/null || true
           docker network create agriza-dev-network 2>/dev/null || true
           
-          # Pull and deploy latest images
           docker pull ${{ env.BACKEND_IMAGE }}:development
           docker pull ${{ env.FRONTEND_IMAGE }}:development
           
-          # Deploy backend
           docker run -d \
             --name agriza-backend-dev \
             --network agriza-dev-network \
@@ -83,7 +80,6 @@ jobs:
             --restart unless-stopped \
             ${{ env.BACKEND_IMAGE }}:development
           
-          # Deploy frontend
           docker run -d \
             --name agriza-frontend-dev \
             --network agriza-dev-network \
@@ -91,15 +87,11 @@ jobs:
             --restart unless-stopped \
             ${{ env.FRONTEND_IMAGE }}:development
 
-      - name: Health Check
+      - name: Health Check & Success
         run: |
           echo "🔍 Running health checks..."
           sleep 30
           docker ps --filter name=agriza-backend-dev --filter name=agriza-frontend-dev
-
-      - name: Deployment Success
-        run: |
           echo "🎉 DEVELOPMENT DEPLOYMENT COMPLETED!"
           echo "📍 Frontend: http://localhost:3001"
           echo "📍 Backend:  http://localhost:5001"
-          echo "🔄 ROLLBACK: git revert <commit> && git push origin development"
