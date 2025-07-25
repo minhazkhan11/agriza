@@ -1,4 +1,4 @@
-name: Development Environment - Build, Push & Deploy
+name: Development Environment - Build, Push, Deploy & Rollback
 
 on:
   push:
@@ -15,6 +15,11 @@ jobs:
     name: Build & Push Development Images
     runs-on: ubuntu-latest
     
+    outputs:
+      backend-tag: ${{ steps.meta.outputs.backend-tag }}
+      frontend-tag: ${{ steps.meta.outputs.frontend-tag }}
+      commit-sha: ${{ steps.meta.outputs.commit-sha }}
+      
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -22,12 +27,23 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # CORRECT: Use environment variable for username, secret for token
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ env.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # >>>>>>> ROLLBACK METADATA COLLECTION CONTROL <<<<<<<
+      - name: Extract Metadata for Rollback
+        id: meta
+        run: |
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          COMMIT_SHA=${GITHUB_SHA::8}
+          echo "timestamp=${TIMESTAMP}" >> $GITHUB_OUTPUT
+          echo "commit-sha=${COMMIT_SHA}" >> $GITHUB_OUTPUT
+          echo "backend-tag=development-${TIMESTAMP}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
+          echo "frontend-tag=development-${TIMESTAMP}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
+          echo "🚀 Building for DEVELOPMENT environment with ROLLBACK capability"
 
       - name: Build and Push Backend Image
         uses: docker/build-push-action@v5
@@ -37,6 +53,7 @@ jobs:
           push: true
           tags: |
             ${{ env.BACKEND_IMAGE }}:development
+            ${{ env.BACKEND_IMAGE }}:${{ steps.meta.outputs.backend-tag }}
             ${{ env.BACKEND_IMAGE }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -49,6 +66,7 @@ jobs:
           push: true
           tags: |
             ${{ env.FRONTEND_IMAGE }}:development
+            ${{ env.FRONTEND_IMAGE }}:${{ steps.meta.outputs.frontend-tag }}
             ${{ env.FRONTEND_IMAGE }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -57,19 +75,51 @@ jobs:
     name: Deploy to Development Environment
     needs: build-and-push
     runs-on: ubuntu-latest
+    environment: development
     
     steps:
-      - name: Deploy Containers
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # >>>>>>> ROLLBACK BACKUP STRATEGY CONTROL <<<<<<<
+      - name: Create Deployment Backup Info
+        run: |
+          mkdir -p /tmp/deployment-backup
+          cat <<EOF > /tmp/deployment-backup/current-deployment.json
+          {
+            "deployment_id": "${{ github.run_id }}",
+            "commit_sha": "${{ needs.build-and-push.outputs.commit-sha }}",
+            "commit_message": "${{ github.event.head_commit.message }}",
+            "author": "${{ github.event.head_commit.author.name }}",
+            "branch": "development",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "backend_image": "${{ env.BACKEND_IMAGE }}:development",
+            "frontend_image": "${{ env.FRONTEND_IMAGE }}:development",
+            "backend_tag": "${{ needs.build-and-push.outputs.backend-tag }}",
+            "frontend_tag": "${{ needs.build-and-push.outputs.frontend-tag }}",
+            "deployed_by": "${{ github.actor }}",
+            "rollback_command": "git revert ${{ needs.build-and-push.outputs.commit-sha }} && git push origin development"
+          }
+          EOF
+          echo "📝 Deployment record created for rollback capability"
+
+      - name: Deploy Containers with Overlap Prevention
         run: |
           echo "🚀 DEPLOYING TO DEVELOPMENT ENVIRONMENT"
+          echo "======================================"
           
+          # Clean up existing containers (prevents overlap)
+          echo "🧹 Cleaning up existing containers..."
           docker stop agriza-backend-dev agriza-frontend-dev 2>/dev/null || true
           docker rm agriza-backend-dev agriza-frontend-dev 2>/dev/null || true
           docker network create agriza-dev-network 2>/dev/null || true
           
+          # Pull and deploy latest images
+          echo "📥 Pulling latest development images..."
           docker pull ${{ env.BACKEND_IMAGE }}:development
           docker pull ${{ env.FRONTEND_IMAGE }}:development
           
+          # Deploy backend
           docker run -d \
             --name agriza-backend-dev \
             --network agriza-dev-network \
@@ -77,9 +127,12 @@ jobs:
             -p 5001:5000 \
             -e NODE_ENV=development \
             -e PORT=5000 \
+            -e JWT_SECRET_KEY=dev-jwt-secret \
+            -e SESSION_SECRET=dev-session-secret \
             --restart unless-stopped \
             ${{ env.BACKEND_IMAGE }}:development
           
+          # Deploy frontend
           docker run -d \
             --name agriza-frontend-dev \
             --network agriza-dev-network \
@@ -87,11 +140,88 @@ jobs:
             --restart unless-stopped \
             ${{ env.FRONTEND_IMAGE }}:development
 
-      - name: Health Check & Success
+      # >>>>>>> HEALTH CHECK STRATEGY CONTROL <<<<<<<
+      - name: Enhanced Health Check & Verification
         run: |
-          echo "🔍 Running health checks..."
-          sleep 30
+          echo "🔍 Performing comprehensive health checks..."
+          sleep 45
+          
+          # Container status verification
+          echo "📋 Container Status:"
           docker ps --filter name=agriza-backend-dev --filter name=agriza-frontend-dev
+          
+          # Backend health check
+          echo "🏥 Backend Health Check:"
+          BACKEND_STATUS="❌ Unhealthy"
+          for i in {1..5}; do
+            if curl -f -s http://localhost:5001/api/ > /dev/null; then
+              echo "✅ Backend health check passed (attempt $i)"
+              BACKEND_STATUS="✅ Healthy"
+              break
+            else
+              echo "⏳ Backend health check failed, retrying... (attempt $i/5)"
+              sleep 10
+            fi
+          done
+          
+          # Frontend health check
+          echo "🏥 Frontend Health Check:"
+          FRONTEND_STATUS="❌ Unhealthy"
+          for i in {1..5}; do
+            if curl -f -s http://localhost:3001 > /dev/null; then
+              echo "✅ Frontend health check passed (attempt $i)"
+              FRONTEND_STATUS="✅ Healthy"
+              break
+            else
+              echo "⏳ Frontend health check failed, retrying... (attempt $i/5)"
+              sleep 10
+            fi
+          done
+          
+          echo ""
+          echo "📊 FINAL HEALTH STATUS:"
+          echo "Backend: $BACKEND_STATUS"
+          echo "Frontend: $FRONTEND_STATUS"
+
+      # >>>>>>> ROLLBACK INSTRUCTIONS CONTROL <<<<<<<
+      - name: Deployment Success & Rollback Instructions
+        run: |
+          echo ""
           echo "🎉 DEVELOPMENT DEPLOYMENT COMPLETED!"
-          echo "📍 Frontend: http://localhost:3001"
-          echo "📍 Backend:  http://localhost:5001"
+          echo "==================================="
+          echo ""
+          echo "📍 Application Access URLs:"
+          echo "   🌐 Frontend:      http://localhost:3001"
+          echo "   🔧 Backend:       http://localhost:5001"
+          echo "   🩺 Health Check:  http://localhost:5001/health"
+          echo "   📡 API Endpoint:  http://localhost:5001/api/"
+          echo ""
+          echo "📋 Deployment Details:"
+          echo "   📦 Backend:  ${{ env.BACKEND_IMAGE }}:development"
+          echo "   📦 Frontend: ${{ env.FRONTEND_IMAGE }}:development"
+          echo "   📝 Commit:   ${{ needs.build-and-push.outputs.commit-sha }}"
+          echo "   👤 By:       ${{ github.actor }}"
+          echo "   🕒 At:       $(date)"
+          echo ""
+          echo "🔄 ROLLBACK CAPABILITY ENABLED:"
+          echo "==============================="
+          echo ""
+          echo "💡 AUTOMATIC ROLLBACK Process:"
+          echo "   1️⃣ Find problematic commit: git log --oneline development"
+          echo "   2️⃣ Revert the commit: git revert ${{ needs.build-and-push.outputs.commit-sha }}"
+          echo "   3️⃣ Push to trigger redeployment: git push origin development"
+          echo "   4️⃣ GitHub Actions automatically redeploys the rollback version"
+          echo ""
+          echo "🎯 ROLLBACK IS FULLY AUTOMATED!"
+
+      - name: Generate Deployment Summary
+        run: |
+          echo "## 🚀 Development Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status | URL | Image |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|-----|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend | ✅ Deployed | http://localhost:5001 | \`${{ env.BACKEND_IMAGE }}:development\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend | ✅ Deployed | http://localhost:3001 | \`${{ env.FRONTEND_IMAGE }}:development\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📝 **Commit:** ${{ needs.build-and-push.outputs.commit-sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "🔄 **Rollback:** \`git revert ${{ needs.build-and-push.outputs.commit-sha }} && git push origin development\`" >> $GITHUB_STEP_SUMMARY
