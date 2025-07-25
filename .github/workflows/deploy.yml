@@ -1,0 +1,92 @@
+name: Testing Environment - Build & Push Images
+
+on:
+  push:
+    branches:
+      - testing
+  pull_request:
+    branches:
+      - testing
+
+env:
+  DOCKERHUB_USERNAME: minhazkhan
+  BACKEND_IMAGE: minhazkhan/agriza-backend-1
+  FRONTEND_IMAGE: minhazkhan/agriza-frontend-1
+
+jobs:
+  build-and-push-testing:
+    name: Build & Push Images for Testing
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract Metadata
+        id: meta
+        run: |
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          COMMIT_SHA=${GITHUB_SHA::8}
+          
+          echo "timestamp=${TIMESTAMP}" >> $GITHUB_OUTPUT
+          echo "commit-sha=${COMMIT_SHA}" >> $GITHUB_OUTPUT
+          echo "backend-tag=testing-${TIMESTAMP}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
+          echo "frontend-tag=testing-${TIMESTAMP}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
+          
+          echo "🧪 Building for TESTING environment"
+          echo "📦 Backend: ${{ env.BACKEND_IMAGE }}"
+          echo "📦 Frontend: ${{ env.FRONTEND_IMAGE }}"
+
+      - name: Build and Push Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.BACKEND_IMAGE }}:testing
+            ${{ env.BACKEND_IMAGE }}:${{ steps.meta.outputs.backend-tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and Push Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.FRONTEND_IMAGE }}:testing
+            ${{ env.FRONTEND_IMAGE }}:${{ steps.meta.outputs.frontend-tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Testing Environment Success
+        run: |
+          echo "🧪 TESTING ENVIRONMENT - BUILD COMPLETED"
+          echo "========================================"
+          echo "📦 Backend:  ${{ env.BACKEND_IMAGE }}:testing"
+          echo "📦 Frontend: ${{ env.FRONTEND_IMAGE }}:testing"
+          echo "📝 Commit:   ${{ github.sha }}"
+          echo "✅ Images ready for testing and validation"
+          echo ""
+          echo "🔗 Docker Hub Links:"
+          echo "   Backend:  https://hub.docker.com/r/${{ env.BACKEND_IMAGE }}"
+          echo "   Frontend: https://hub.docker.com/r/${{ env.FRONTEND_IMAGE }}"
+
+      - name: Generate Testing Summary
+        run: |
+          echo "## 🧪 Testing Environment Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status | Docker Hub Repository |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|-----------------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend | ✅ Built & Pushed | \`${{ env.BACKEND_IMAGE }}:testing\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend | ✅ Built & Pushed | \`${{ env.FRONTEND_IMAGE }}:testing\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📝 **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "🕒 **Built at:** $(date)" >> $GITHUB_STEP_SUMMARY
