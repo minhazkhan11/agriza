@@ -1,0 +1,71 @@
+name: Testing Environment - Build & Push Images
+
+on:
+  push:
+    branches:
+      - testing
+
+env:
+  DOCKERHUB_USERNAME: minhazkhan
+  BACKEND_IMAGE: minhazkhan/agriza-backend-1
+  FRONTEND_IMAGE: minhazkhan/agriza-frontend-1
+
+jobs:
+  build-and-push-testing:
+    name: Build & Push Images for Testing
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract Metadata
+        id: meta
+        run: |
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          COMMIT_SHA=${GITHUB_SHA::8}
+          echo "timestamp=${TIMESTAMP}" >> $GITHUB_OUTPUT
+          echo "commit-sha=${COMMIT_SHA}" >> $GITHUB_OUTPUT
+          echo "🧪 Building for TESTING environment"
+
+      - name: Build and Push Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.BACKEND_IMAGE }}:testing
+            ${{ env.BACKEND_IMAGE }}:testing-${{ steps.meta.outputs.timestamp }}-${{ steps.meta.outputs.commit-sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and Push Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.FRONTEND_IMAGE }}:testing
+            ${{ env.FRONTEND_IMAGE }}:testing-${{ steps.meta.outputs.timestamp }}-${{ steps.meta.outputs.commit-sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Testing Success
+        run: |
+          echo "🧪 TESTING ENVIRONMENT - BUILD COMPLETED"
+          echo "========================================"
+          echo "📦 Backend:  ${{ env.BACKEND_IMAGE }}:testing"
+          echo "📦 Frontend: ${{ env.FRONTEND_IMAGE }}:testing"
+          echo "✅ Images ready for testing and validation"
+          echo "✅ No deployment performed (testing branch behavior)"
